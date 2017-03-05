@@ -25,12 +25,21 @@ def load_pkl(path):
 def preprocess(path):
     df = pandas.read_csv(path, delimiter=';')
 
+    # age
+
     # throw out data for age values > 60
     df = df.drop(df[df.age > 60].index)
     # normalize all values between -1 and +1
     df["age"] = min_max_scaling(df["age"], -1., 1.)
-    print(df["age"])
-            
+
+    # job
+    df["job"] = df["job"].astype('category')
+    # convert categorical to int
+    df["job"] = df["job"].cat.codes
+    # normalize between -1 and 1
+    df["job"] = min_max_scaling(df["job"], -1., 1.)
+
+    print(df["job"])
 
 if __name__ == '__main__':
 
@@ -42,7 +51,8 @@ if __name__ == '__main__':
 
     args = vars(parser.parse_args())
 
-    if os.path.isfile(args['training_data']) and os.path.isfile(args['test_data']):
+    if os.path.isfile(os.path.join(os.getcwd(), args['training_data'])) and \
+            os.path.isfile(os.path.join(os.getcwd(), args['test_data'])):
         train_data = load_pkl(args['training_data'])
         test_data = load_pkl(args['test_data'])
     else:
