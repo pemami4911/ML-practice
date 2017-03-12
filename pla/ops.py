@@ -24,11 +24,15 @@ def sigmoid(x):
     """
     Returns a value between 0 and 1
     """
-    return 1. / (1 + np.exp(-x))
+    return np.exp(-np.logaddexp(0, -x))
 
 def mse(y, y_hat):
     """ MSE """
     return np.multiply(0.5, np.power((y_hat - y), 2.))
 
-def binarize(out): 
-    return 1. if out >= 0.5 else 0. 
+def binarize(x, threshold):
+    """
+    Binarize the output of a sigmoid to be either +1 or -1
+    if output is gte threshold.
+    """ 
+    return 1. if x >= threshold else -1. 

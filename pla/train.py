@@ -7,6 +7,7 @@ import pandas
 import numpy as np
 from ops import *
 from sklearn.linear_model import LogisticRegression
+import matplotlib.pyplot as plt
 
 
 def preprocess(path):
@@ -99,33 +100,85 @@ def preprocess(path):
 
     return train_data, test_data
 
-
-def pla(args, train_data, test_data):
+def prep_data(train_data, test_data, augment=False):
     """
 
-    :param args:
-    :param data: data[0] contains the feature vectors, data[1] contains the labels
-    :param params:
+    :param train_data
+    :param test_data
+    :param augment: set to True if the xs should be augmented with a 
+        col of 1's to account for biases
     """
+
+    np.random.shuffle(train_data)
+    np.random.shuffle(test_data)
+
     rows, cols = np.shape(train_data)
-
-    params = np.zeros((cols-2, 1), dtype=np.float32)
-
     xs = train_data[:, 0:cols-2]
     ys = train_data[:, cols-1]
 
+    if augment:
+        xs = np.concatenate((xs, np.ones((rows, 1))), axis=1)
+
+    test_rows, test_cols = np.shape(test_data)
+
+    test_xs = test_data[:, 0:test_cols-2]
+    test_ys = test_data[:, test_cols-1]
+
+    if augment:
+        test_xs = np.concatenate((test_xs, np.ones((test_rows, 1))), axis=1)
+
+    return {
+        'train_rows': rows,
+        'train_cols': cols,
+        'train_xs': xs,
+        'train_ys': ys,
+        'test_rows': test_rows,
+        'test_cols': test_cols,
+        'test_xs': test_xs,
+        'test_ys': test_ys
+    }
+
+def pla(args, train_data, test_data):
+    """
+    Perceptron Learning Algorithm 
+
+    :param args:
+    :param train_data:
+    :param test_data:
+    """
+
+    data = prep_data(train_data, test_data)
+    n_features = data['train_cols']-2
+
+    params = np.zeros((n_features, 1), dtype=np.float32)
+    err = np.zeros((int(args['n_epochs']), 1))
+
     for i in range(int(args['n_epochs'])):
-        for j in range(rows):
-            out = sign(np.dot(xs[j, :], params))
-            if not ys[j] == out:
-                params = np.add(params, np.reshape(np.multiply(ys[j], xs[j, :]), (cols-2, 1)))
+
+        for j in range(data['train_rows']):
+            out = sign(np.dot(data['train_xs'][j, :], params))
+            if not data['train_ys'][j] == out:
+                # params update is: params <= params + y * 
+                params = np.add(params, np.reshape(np.multiply(data['train_ys'][j], \
+                    data['train_xs'][j, :]), (n_features, 1)))
 
         # re-normalize the parameter vector so ||theta|| = 1
         params = np.divide(params, np.linalg.norm(params))
 
-        err = test(test_data, params, augment=False)
+        wrong = 0
+        for j in range(data['test_rows']):
+            out = sign(np.dot(data['test_xs'][j, :], params))
+            if not data['test_ys'][j] == out:
+                wrong += 1
 
-        print("  [*] PLA test error of {} % at epoch {}...".format(np.round(err * 100, 4), i))
+        err[i] = np.round((wrong / data['test_rows']) * 100, 4)
+
+        print("  [PLA] validation error of {} % at epoch {}".format(err[i], i))
+
+        # Re-shuffle the data for the next epoch
+        data = prep_data(train_data, test_data)
+
+    return err
 
 def sigmoid_net(args, train_data, test_data):
     """
@@ -133,64 +186,60 @@ def sigmoid_net(args, train_data, test_data):
     sign function
 
     :param args:
-    :param data: data[0] contains the feature vectors, data[1] contains the labels
-    :param params:
-    :return: params:
+    :param train_data:
+    :param test_data:
     """
-    rows, cols = np.shape(train_data)
+    data = prep_data(train_data, test_data, augment=True)
 
-    xs = train_data[:, 0:cols-2]
-    ys = train_data[:, cols-1]
-    augmented_xs = np.concatenate((xs, np.ones((rows, 1))), axis=1)
-
+    n_features = data['train_cols']-1
     # Add an extra parameter for the bias terms
-    params = np.zeros((cols-1, 1), dtype=np.float32)
+    #params = np.zeros((cols-1, 1), dtype=np.float32)
+    params = np.random.normal(scale=1, size=(n_features, 1))
     grads = np.zeros_like(params)
+    loss = np.zeros((int(args['n_epochs']), 1))
+    err = np.zeros_like(loss)
 
     for i in range(int(args['n_epochs'])):
-        loss = 0
+
         grads[:] = 0
-        for j in range(rows):
-            out = sigmoid(np.dot(augmented_xs[j, :], params))
-            pred = binarize(out)
-            loss += mse(pred, ys[j])
+
+        for j in range(data['train_rows']):
+            out = sigmoid(np.dot(data['train_xs'][j, :], params))
+            pred = binarize(out, 0.5)
+            loss[i] += mse(pred, data['train_ys'][j])
+
             # gradient computation
-            for k in range(cols-1):
-                dE_dout = np.multiply(-1, pred - ys[j])
+            for k in range(n_features):
+                dE_dout = np.multiply(-1, pred - data['train_ys'][j])
                 dout_dnet = np.multiply(out, 1. - out)
-                dnet_dwk = augmented_xs[j, k]
+                dnet_dwk = data['train_xs'][j, k]
                 grads[k] += np.multiply(dE_dout, np.multiply(dout_dnet, dnet_dwk))
 
-        scaled_grads = np.divide(grads, rows)
-        print("  [*] gradient check for sigmoid net: {}".format(scaled_grads))
+        scaled_grads = np.divide(grads, data['train_rows'])
+        loss[i] = np.divide(loss[i], data['train_rows'])
+
+        print("  [Sigmoid] training loss {} at epoch {}".format(np.round(loss[i], 4), i))
         
         # apply gradients
         lr = float(args['learning_rate'])
-        params += np.multiply(lr, scaled_grads)
+        params += np.multiply(lr, scaled_grads)            
+        
+        # compute validation misclassification error
+        wrong = 0
+        for j in range(data['test_rows']):
+            out = sigmoid(np.dot(data['test_xs'][j, :], params))
+            pred = binarize(out, 0.5)
+            if not data['test_ys'][j] == pred:
+                wrong += 1
 
-        #print("  [*] sigmoid net epoch: {}, loss: {}".format(i, loss))
+        err[i] = np.round((wrong / data['test_rows']) * 100, 4)
 
-        err = test(test_data, params, augment=True)
-
-        print("  [*] sigmoid net test error of {} % at epoch {}...".format(np.round(err * 100, 4), i))
-
-def test(test_data, params, augment):
-
-    rows, cols = np.shape(test_data)
-
-    xs = test_data[:, 0:cols-2]
-    ys = test_data[:, cols-1]
-
-    if augment: 
-        xs = np.concatenate((xs, np.ones((rows, 1))), axis=1)
- 
-    wrong = 0
-    for i in range(rows):
-        out = sign(np.dot(xs[i, :], params))
-        if not ys[i] == out:
-            wrong += 1
-
-    return (wrong / rows)
+        print("  [Sigmoid] test error of {} % at epoch {}".format(err[i], i))
+        
+        # Re-shuffle the data for the next epoch
+        data = prep_data(train_data, test_data, augment=True)
+    
+    return loss, err
 
 def fixed_baseline(test_data):
     """Guess no every time."""
@@ -228,12 +277,14 @@ def logistic_regression_baseline(train_data, test_data):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Set the run parameters.')
+    parser.add_argument('--random_seed', default=2223)
+    parser.add_argument('--model', default='PLA')
     parser.add_argument('--dataset', default='data/bank.csv', help='raw CSV file of data')
     parser.add_argument('--training_data', default='data/bank_train.pkl', help='specify pickled preprocessed training data')
     parser.add_argument('--test_data', default='data/bank_test.pkl', help='specify pickled preprocessed test data')
-    parser.add_argument('--n_epochs', default=5, help='num epochs of training')
-    parser.add_argument('--random_seed', default=65465)
-    parser.add_argument('--learning_rate', default=0.0001, help='learning rate for gradient descent')
+    parser.add_argument('--n_epochs', default=100, help='num epochs of training')
+    parser.add_argument('--learning_rate', default=0.1, help='learning rate for gradient descent')
+    parser.add_argument('--plots', action='store_true', default=False)
 
     args = vars(parser.parse_args())
 
@@ -246,14 +297,37 @@ if __name__ == '__main__':
     else:
         train_data, test_data = preprocess(args['dataset'])
 
-    pla(args, train_data, test_data)
+    if args['model'] == 'PLA':
+        err = pla(args, train_data, test_data)
+        if args['plots']:
+            plt.plot(err)
+            plt.ylabel('test error')
+            plt.xlabel('epoch')
+            plt.show()
 
-    sigmoid_net(args, train_data, test_data)
+    elif args['model'] == 'sigmoid':
+        loss, err = sigmoid_net(args, train_data, test_data)
+        if args['plots']:
+            plt.figure(1)
+            plt.subplot(121)
+            plt.plot(err)
+            plt.ylabel('test error')
+            plt.xlabel('epoch')
+            plt.title('sigmoid net error')
 
-    baseline_err = fixed_baseline(test_data)
+            plt.subplot(122)
+            plt.plot(loss)
+            plt.ylabel('training loss')
+            plt.xlabel('epoch')
+            plt.title('sigmoid net training loss')
 
-    print("  [*] fixed baseline test error is {} %...".format(np.round(baseline_err * 100, 3)))
-
-    lr_baseline_err = logistic_regression_baseline(train_data, test_data)
-
-    print("  [*] logistic regression baseline test error is {} %...".format(np.round(lr_baseline_err * 100, 3)))
+            plt.show()
+    elif args['model'] == 'baseline':
+        
+        baseline_err = fixed_baseline(test_data)
+        print("  [Always NO baseline] test error is {} %".format(np.round(baseline_err * 100, 4)))
+        lr_baseline_err = logistic_regression_baseline(train_data, test_data)
+        print("  [Logistic Regression] test error is {} %".format(np.round(lr_baseline_err * 100, 4)))
+    
+    else:
+        print("  [ERROR] model {} not supported...".format(args['model']))
