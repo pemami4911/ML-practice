@@ -1,27 +1,12 @@
 #!/usr/bin/env python
-from __future__ import division
+from __future__ import division, absolute_import
 
-import cPickle
 import argparse
 import os
 import pandas
 import numpy as np
-
-
-def min_max_scaling(X, max, min):
-    X_std = (X - X.min()) / (X.max() - X.min())
-    return X_std * (max - min) + min
-
-def save_pkl(obj, path):
-    with open(path, 'w') as f:
-        cPickle.dump(obj, f)
-        print("  [*] save %s" % path)
-
-def load_pkl(path):
-    with open(path) as f:
-        obj = cPickle.load(f)
-    print("  [*] load %s" % path)
-    return obj
+from ops import *
+from sklearn.linear_model import LogisticRegression
 
 
 def preprocess(path):
@@ -30,7 +15,7 @@ def preprocess(path):
     # age
 
     # throw out data for age values > 60
-    df = df.drop(df[df.age > 60].index)
+    # df = df.drop(df[df.age > 60].index)
     # normalize all values between -1 and +1
     df["age"] = min_max_scaling(df["age"], -1., 1.)
 
@@ -102,7 +87,7 @@ def preprocess(path):
     df["y"] = df["y"].cat.codes
     df["y"] = min_max_scaling(df["y"], -1., 1.)
 
-    # split into train and test set
+    # split into 50/50 train and test set
     # shuffle data
     df = df.iloc[np.random.permutation(len(df))]
     data = np.array_split(df, 2)
@@ -114,8 +99,6 @@ def preprocess(path):
 
     return train_data, test_data
 
-def sign(val):
-    return 1. if val >= 0 else -1.
 
 def pla(args, train_data, test_data):
     """
@@ -123,7 +106,6 @@ def pla(args, train_data, test_data):
     :param args:
     :param data: data[0] contains the feature vectors, data[1] contains the labels
     :param params:
-    :return: params:
     """
     rows, cols = np.shape(train_data)
 
@@ -132,7 +114,7 @@ def pla(args, train_data, test_data):
     xs = train_data[:, 0:cols-2]
     ys = train_data[:, cols-1]
 
-    for i in range(args['n_epochs']):
+    for i in range(int(args['n_epochs'])):
         for j in range(rows):
             out = sign(np.dot(xs[j, :], params))
             if not ys[j] == out:
@@ -141,20 +123,67 @@ def pla(args, train_data, test_data):
         # re-normalize the parameter vector so ||theta|| = 1
         params = np.divide(params, np.linalg.norm(params))
 
-        err = test(test_data, params)
+        err = test(test_data, params, augment=False)
 
         print("  [*] PLA test error of {} % at epoch {}...".format(np.round(err * 100, 4), i))
 
-    return params
+def sigmoid_net(args, train_data, test_data):
+    """
+    Use the sigmoid activation function instead of 
+    sign function
 
+    :param args:
+    :param data: data[0] contains the feature vectors, data[1] contains the labels
+    :param params:
+    :return: params:
+    """
+    rows, cols = np.shape(train_data)
 
-def test(test_data, params):
+    xs = train_data[:, 0:cols-2]
+    ys = train_data[:, cols-1]
+    augmented_xs = np.concatenate((xs, np.ones((rows, 1))), axis=1)
+
+    # Add an extra parameter for the bias terms
+    params = np.zeros((cols-1, 1), dtype=np.float32)
+    grads = np.zeros_like(params)
+
+    for i in range(int(args['n_epochs'])):
+        loss = 0
+        grads[:] = 0
+        for j in range(rows):
+            out = sigmoid(np.dot(augmented_xs[j, :], params))
+            pred = binarize(out)
+            loss += mse(pred, ys[j])
+            # gradient computation
+            for k in range(cols-1):
+                dE_dout = np.multiply(-1, pred - ys[j])
+                dout_dnet = np.multiply(out, 1. - out)
+                dnet_dwk = augmented_xs[j, k]
+                grads[k] += np.multiply(dE_dout, np.multiply(dout_dnet, dnet_dwk))
+
+        scaled_grads = np.divide(grads, rows)
+        print("  [*] gradient check for sigmoid net: {}".format(scaled_grads))
+        
+        # apply gradients
+        lr = float(args['learning_rate'])
+        params += np.multiply(lr, scaled_grads)
+
+        #print("  [*] sigmoid net epoch: {}, loss: {}".format(i, loss))
+
+        err = test(test_data, params, augment=True)
+
+        print("  [*] sigmoid net test error of {} % at epoch {}...".format(np.round(err * 100, 4), i))
+
+def test(test_data, params, augment):
 
     rows, cols = np.shape(test_data)
 
     xs = test_data[:, 0:cols-2]
     ys = test_data[:, cols-1]
 
+    if augment: 
+        xs = np.concatenate((xs, np.ones((rows, 1))), axis=1)
+ 
     wrong = 0
     for i in range(rows):
         out = sign(np.dot(xs[i, :], params))
@@ -163,7 +192,7 @@ def test(test_data, params):
 
     return (wrong / rows)
 
-def test_baseline(test_data):
+def fixed_baseline(test_data):
     """Guess no every time."""
 
     rows, cols = np.shape(test_data)
@@ -178,18 +207,37 @@ def test_baseline(test_data):
 
     return (wrong / rows)
 
+def logistic_regression_baseline(train_data, test_data):
+    # use default parameters
+    lr = LogisticRegression()
+
+    _, cols = np.shape(train_data)
+
+    xs = train_data[:, 0:cols-2]
+    ys = train_data[:, cols-1]
+
+    _, test_cols = np.shape(test_data)
+
+    test_xs = test_data[:, 0:test_cols-2]
+    test_ys = test_data[:, test_cols-1]
+
+    lr.fit(xs, ys)
+    accuracy = lr.score(test_xs, test_ys)
+    return (1. - accuracy)
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Set the run parameters.')
     parser.add_argument('--dataset', default='data/bank.csv', help='raw CSV file of data')
     parser.add_argument('--training_data', default='data/bank_train.pkl', help='specify pickled preprocessed training data')
     parser.add_argument('--test_data', default='data/bank_test.pkl', help='specify pickled preprocessed test data')
-    parser.add_argument('--n_epochs', default=1, help='num epochs of training')
-    parser.add_argument('--random_seed', default=1234)
+    parser.add_argument('--n_epochs', default=5, help='num epochs of training')
+    parser.add_argument('--random_seed', default=65465)
+    parser.add_argument('--learning_rate', default=0.0001, help='learning rate for gradient descent')
 
     args = vars(parser.parse_args())
 
-    np.random.seed(args['random_seed'])
+    np.random.seed(int(args['random_seed']))
 
     if os.path.isfile(os.path.join(os.getcwd(), args['training_data'])) and \
             os.path.isfile(os.path.join(os.getcwd(), args['test_data'])):
@@ -198,9 +246,14 @@ if __name__ == '__main__':
     else:
         train_data, test_data = preprocess(args['dataset'])
 
-    params = pla(args, train_data, test_data)
+    pla(args, train_data, test_data)
 
-    baseline_err = test_baseline(test_data)
+    sigmoid_net(args, train_data, test_data)
 
-    print("  [*] baseline test error is {} %...".format(np.round(baseline_err * 100, 3)))
-    
+    baseline_err = fixed_baseline(test_data)
+
+    print("  [*] fixed baseline test error is {} %...".format(np.round(baseline_err * 100, 3)))
+
+    lr_baseline_err = logistic_regression_baseline(train_data, test_data)
+
+    print("  [*] logistic regression baseline test error is {} %...".format(np.round(lr_baseline_err * 100, 3)))
