@@ -3,11 +3,10 @@ from __future__ import division, absolute_import
 
 import argparse
 import os
-import pandas
-import numpy as np
-from ops import *
-from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
+import pandas
+from sklearn.linear_model import LogisticRegression
+from util.ops import *
 
 
 def preprocess(path):
@@ -100,6 +99,7 @@ def preprocess(path):
 
     return train_data, test_data
 
+
 def prep_data(train_data, test_data, augment=False):
     """
 
@@ -113,16 +113,16 @@ def prep_data(train_data, test_data, augment=False):
     np.random.shuffle(test_data)
 
     rows, cols = np.shape(train_data)
-    xs = train_data[:, 0:cols-2]
-    ys = train_data[:, cols-1]
+    xs = train_data[:, 0:cols - 2]
+    ys = train_data[:, cols - 1]
 
     if augment:
         xs = np.concatenate((xs, np.ones((rows, 1))), axis=1)
 
     test_rows, test_cols = np.shape(test_data)
 
-    test_xs = test_data[:, 0:test_cols-2]
-    test_ys = test_data[:, test_cols-1]
+    test_xs = test_data[:, 0:test_cols - 2]
+    test_ys = test_data[:, test_cols - 1]
 
     if augment:
         test_xs = np.concatenate((test_xs, np.ones((test_rows, 1))), axis=1)
@@ -138,6 +138,7 @@ def prep_data(train_data, test_data, augment=False):
         'test_ys': test_ys
     }
 
+
 def pla(args, train_data, test_data):
     """
     Perceptron Learning Algorithm 
@@ -148,7 +149,7 @@ def pla(args, train_data, test_data):
     """
 
     data = prep_data(train_data, test_data)
-    n_features = data['train_cols']-2
+    n_features = data['train_cols'] - 2
 
     params = np.zeros((n_features, 1), dtype=np.float32)
     err = np.zeros((int(args['n_epochs']), 1))
@@ -159,8 +160,8 @@ def pla(args, train_data, test_data):
             out = sign(np.dot(data['train_xs'][j, :], params))
             if not data['train_ys'][j] == out:
                 # params update is: params <= params + y * 
-                params = np.add(params, np.reshape(np.multiply(data['train_ys'][j], \
-                    data['train_xs'][j, :]), (n_features, 1)))
+                params = np.add(params, np.reshape(np.multiply(data['train_ys'][j],
+                                                               data['train_xs'][j, :]), (n_features, 1)))
 
         # re-normalize the parameter vector so ||theta|| = 1
         params = np.divide(params, np.linalg.norm(params))
@@ -180,6 +181,7 @@ def pla(args, train_data, test_data):
 
     return err
 
+
 def sigmoid_net(args, train_data, test_data):
     """
     Use the sigmoid activation function instead of 
@@ -191,9 +193,9 @@ def sigmoid_net(args, train_data, test_data):
     """
     data = prep_data(train_data, test_data, augment=True)
 
-    n_features = data['train_cols']-1
+    n_features = data['train_cols'] - 1
     # Add an extra parameter for the bias terms
-    #params = np.zeros((cols-1, 1), dtype=np.float32)
+    # params = np.zeros((cols-1, 1), dtype=np.float32)
     params = np.random.normal(scale=1, size=(n_features, 1))
     grads = np.zeros_like(params)
     loss = np.zeros((int(args['n_epochs']), 1))
@@ -219,11 +221,11 @@ def sigmoid_net(args, train_data, test_data):
         loss[i] = np.divide(loss[i], data['train_rows'])
 
         print("  [Sigmoid] training loss {} at epoch {}".format(np.round(loss[i], 4), i))
-        
+
         # apply gradients
         lr = float(args['learning_rate'])
-        params += np.multiply(lr, scaled_grads)            
-        
+        params += np.multiply(lr, scaled_grads)
+
         # compute validation misclassification error
         wrong = 0
         for j in range(data['test_rows']):
@@ -235,11 +237,12 @@ def sigmoid_net(args, train_data, test_data):
         err[i] = np.round((wrong / data['test_rows']) * 100, 4)
 
         print("  [Sigmoid] test error of {} % at epoch {}".format(err[i], i))
-        
+
         # Re-shuffle the data for the next epoch
         data = prep_data(train_data, test_data, augment=True)
-    
+
     return loss, err
+
 
 def fixed_baseline(test_data):
     """Guess no every time."""
@@ -254,7 +257,8 @@ def fixed_baseline(test_data):
         if not ys[i] == 1.0:
             wrong += 1
 
-    return (wrong / rows)
+    return wrong / rows
+
 
 def logistic_regression_baseline(train_data, test_data):
     # use default parameters
@@ -262,17 +266,18 @@ def logistic_regression_baseline(train_data, test_data):
 
     _, cols = np.shape(train_data)
 
-    xs = train_data[:, 0:cols-2]
-    ys = train_data[:, cols-1]
+    xs = train_data[:, 0:cols - 2]
+    ys = train_data[:, cols - 1]
 
     _, test_cols = np.shape(test_data)
 
-    test_xs = test_data[:, 0:test_cols-2]
-    test_ys = test_data[:, test_cols-1]
+    test_xs = test_data[:, 0:test_cols - 2]
+    test_ys = test_data[:, test_cols - 1]
 
     lr.fit(xs, ys)
     accuracy = lr.score(test_xs, test_ys)
-    return (1. - accuracy)
+    return 1. - accuracy
+
 
 if __name__ == '__main__':
 
@@ -280,7 +285,8 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', default=2223)
     parser.add_argument('--model', default='PLA')
     parser.add_argument('--dataset', default='data/bank.csv', help='raw CSV file of data')
-    parser.add_argument('--training_data', default='data/bank_train.pkl', help='specify pickled preprocessed training data')
+    parser.add_argument('--training_data', default='data/bank_train.pkl',
+                        help='specify pickled preprocessed training data')
     parser.add_argument('--test_data', default='data/bank_test.pkl', help='specify pickled preprocessed test data')
     parser.add_argument('--n_epochs', default=100, help='num epochs of training')
     parser.add_argument('--learning_rate', default=0.1, help='learning rate for gradient descent')
@@ -323,11 +329,11 @@ if __name__ == '__main__':
 
             plt.show()
     elif args['model'] == 'baseline':
-        
+
         baseline_err = fixed_baseline(test_data)
         print("  [Always NO baseline] test error is {} %".format(np.round(baseline_err * 100, 4)))
         lr_baseline_err = logistic_regression_baseline(train_data, test_data)
         print("  [Logistic Regression] test error is {} %".format(np.round(lr_baseline_err * 100, 4)))
-    
+
     else:
         print("  [ERROR] model {} not supported...".format(args['model']))
