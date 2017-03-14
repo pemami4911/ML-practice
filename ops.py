@@ -31,8 +31,8 @@ def sigmoid(x):
     return np.exp(-np.logaddexp(0, -x))
 
 
-def mse(y, y_hat):
-    """ MSE """
+def mse(y_hat, y):
+    """ MSE. y_hat is the label."""
     return np.multiply(0.5, np.power((y_hat - y), 2.))
 
 

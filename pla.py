@@ -6,7 +6,8 @@ import os
 import matplotlib.pyplot as plt
 import pandas
 from sklearn.linear_model import LogisticRegression
-from util.ops import *
+
+from ops import *
 
 
 def preprocess(path):
@@ -208,7 +209,7 @@ def sigmoid_net(args, train_data, test_data):
         for j in range(data['train_rows']):
             out = sigmoid(np.dot(data['train_xs'][j, :], params))
             pred = binarize(out, 0.5)
-            loss[i] += mse(pred, data['train_ys'][j])
+            loss[i] += mse(data['train_ys'][j], pred)
 
             # gradient computation
             for k in range(n_features):

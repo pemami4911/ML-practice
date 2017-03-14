@@ -10,10 +10,12 @@ Training data is 100 random samples uniformly distributed on the unit square,
 and test data is 100 random samples drawn similarly.
 """
 from __future__ import division
+
 import argparse
-import numpy as np
-from util.ops import *
+
 import matplotlib.pyplot as plt
+
+from ops import *
 
 
 def in_circle(x, y):
