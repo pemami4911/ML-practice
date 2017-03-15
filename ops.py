@@ -31,8 +31,12 @@ def sigmoid(x):
     return np.exp(-np.logaddexp(0, -x))
 
 
+def logit(p):
+    return np.log(p) - np.log(1. - p)
+
+
 def mse(y_hat, y):
-    """ MSE. y_hat is the label."""
+    """ MSE. y is the label."""
     return np.multiply(0.5, np.power((y_hat - y), 2.))
 
 

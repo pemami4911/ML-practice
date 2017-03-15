@@ -12,7 +12,6 @@ and test data is 100 random samples drawn similarly.
 from __future__ import division
 
 import argparse
-
 import matplotlib.pyplot as plt
 
 from ops import *
@@ -39,6 +38,10 @@ def generate_data():
 
 def train_mlp(args):
 
+    train_loss = np.zeros((int(args['n_epochs']), 1))
+    test_loss = np.zeros_like(train_loss)
+    err = np.zeros_like(train_loss)
+
     train_xs, train_ys, test_xs, test_ys = generate_data()
 
     # specify model
@@ -52,16 +55,22 @@ def train_mlp(args):
     grad_w2 = np.zeros_like(w2)
     grad_w2_b = np.zeros_like(w2_b)
 
-    loss = np.zeros(int(args['n_epochs']))
-    err = np.zeros_like(loss)
-
     for i in range(int(args['n_epochs'])):
 
+        if i % 5000 == 0:
+            print("  [*] Checkpoint: saving weights...")
+            save_pkl(w1, 'models/mlp/w1-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
+            save_pkl(w2, 'models/mlp/w2-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
+            save_pkl(w1_b, 'models/mlp/w1_b-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
+            save_pkl(w2_b, 'models/mlp/w2_b-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
+
         # zeros grads
-        grad_w1[:] = 0
-        grad_w1_b[:] = 0
-        grad_w2[:] = 0
-        grad_w2_b[:] = 0
+        grad_w1[:] = 0.
+        grad_w1_b[:] = 0.
+        grad_w2[:] = 0.
+        grad_w2_b[:] = 0.
+
+        temp_train_loss = 0.
 
         for j in range(100):
 
@@ -70,10 +79,8 @@ def train_mlp(args):
             # forward equations
             h1 = sigmoid(np.add(np.matmul(w1.T, x), w1_b))
             h2 = sigmoid(np.add(np.matmul(w2.T, h1), w2_b))
-            #print("[DEBUG] out: {}".format(h2))
             pred = binarize(h2, 0.5)
-            #print("[DEBUG] prediction: {}, label: {}".format(pred, train_ys[j]))
-            loss[i] += mse(train_ys[j], pred)
+            temp_train_loss += mse(pred, train_ys[j])
 
             # compute gradients
             # grad_w2
@@ -104,7 +111,8 @@ def train_mlp(args):
         grad_w1_b = np.divide(grad_w1_b, 100.)
         grad_w2 = np.divide(grad_w2, 100.)
         grad_w2_b = np.divide(grad_w2_b, 100.)
-        loss[i] = np.divide(loss[i], 100.)
+
+        train_loss[i] += np.divide(temp_train_loss, 100.)
 
         # apply gradients
         lr = float(args['learning_rate'])
@@ -113,23 +121,26 @@ def train_mlp(args):
         w2 += np.multiply(lr, grad_w2)
         w2_b += np.multiply(lr, grad_w2_b)
 
-        # validation
-        wrong = 0
+        # test
+        wrong = 0.
+        temp_test_loss = 0.
+
         for j in range(100):
             x = test_xs[j]
             # forward equations
             h1 = sigmoid(np.add(np.matmul(w1.T, x), w1_b))
             h2 = sigmoid(np.add(np.matmul(w2.T, h1), w2_b))
-            #print("[DEBUG] out: {}".format(h2))
             pred = binarize(h2, 0.5)
-            #print("[DEBUG] test prediction: {}, label: {}".format(pred, test_ys[j]))
+            temp_test_loss += mse(pred, test_ys[j])
+
             if not pred == test_ys[j]:
                 wrong += 1
 
-        err[i] = np.round((wrong / 100) * 100, 4)
-        loss[i] = np.round(loss[i], 4)
-        print("  [Train] loss: {}".format(loss[i]))
-        print("  [Validation] error: {} %".format(err[i]))
+        err[i] += np.round(np.divide(wrong, 100.) * 100, 4)
+        test_loss[i] += np.divide(temp_test_loss, 100.)
+
+        print("[Train] epoch: {}, loss: {}".format(i, train_loss[i]))
+        print("[Test] epoch: {}, loss: {}, classification error: {} %".format(i, test_loss[i], err[i]))
 
         # re-shuffle data
         train = np.concatenate((train_xs, train_ys), axis=1)
@@ -141,32 +152,73 @@ def train_mlp(args):
         test_xs = train[:, 0:-1]
         test_ys = np.reshape(train[:, -1], (100, 1))
 
+    save_pkl(w1, 'models/mlp/w1-seed-{}.pkl'.format(args['random_seed']))
+    save_pkl(w2, 'models/mlp/w2-seed-{}.pkl'.format(args['random_seed']))
+    save_pkl(w1_b, 'models/mlp/w1_b-seed-{}.pkl'.format(args['random_seed']))
+    save_pkl(w2_b, 'models/mlp/w2_b-seed-{}.pkl'.format(args['random_seed']))
+
     if args['plots']:
         plt.figure(1)
-        ax1 = plt.subplot(121)
         plt.plot(err)
-        plt.ylabel('test error')
+        plt.title('MLP classification error (5 random seeds ave)')
+        plt.ylabel('percent')
         plt.xlabel('epoch')
-        plt.title('sigmoid net error')
-        ax1.set_ylim([0, 100])
 
-        ax2 = plt.subplot(122)
-        plt.plot(loss)
+        plt.figure(2)
+        plt.subplot(121)
+        plt.plot(train_loss)
         plt.ylabel('training loss')
         plt.xlabel('epoch')
-        plt.title('sigmoid net training loss')
-        ax2.set_ylim([0, 1])
+        plt.title('MLP training loss (MSE) (5 random seeds ave)')
+
+        plt.subplot(122)
+        plt.plot(test_loss)
+        plt.ylabel('test loss')
+        plt.xlabel('epoch')
+        plt.title('MLP test loss (MSE) (5 random seeds ave)')
 
         plt.show()
 
+
+def forward(x1, x2):
+    h1 = sigmoid(np.add(np.matmul(w1.T, np.array([x1, x2])), w1_b))
+    h2 = sigmoid(np.add(np.matmul(w2.T, h1), w2_b))
+    return binarize(h2, 0.5)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Set the run parameters.')
-    parser.add_argument('--random_seed', default=68681)
+    parser.add_argument('--random_seed', default=1111)
     parser.add_argument('--n_epochs', default=20000)
     parser.add_argument('--plots', action='store_true', default=False)
     parser.add_argument('--learning_rate', default=0.025)
+    parser.add_argument('--plot_weights', action='store_true')
+
+    parser.set_defaults(plot_weights=False)
+    parser.set_defaults(plots=True)
 
     args = vars(parser.parse_args())
-    np.random.seed(int(args['random_seed']))
 
-    train_mlp(args)
+    np.random.seed(int(args['n_epochs']))
+
+    if not args['plot_weights']:
+        train_mlp(args)
+    else:
+        w1 = load_pkl('models/mlp/w1-epoch-0-seed-82727.pkl')
+        w2 = load_pkl('models/mlp/w2-epoch-0-seed-82727.pkl')
+        w1_b = load_pkl('models/mlp/w1_b-epoch-0-seed-82727.pkl')
+        w2_b = load_pkl('models/mlp/w2_b-epoch-0-seed-82727.pkl')
+
+        circle = plt.Circle((0.5, 0.6), 0.4)
+        fig, ax = plt.subplots()
+        ax.add_artist(circle)
+
+        for i in range(10):
+            x1 = 0.
+            x2 = 1.
+            y1 = (-w1_b[i]-(w1[0][i]*x1))/w1[1][i]
+            y2 = (-w1_b[i]-(w1[0][i]*x2))/w1[1][i]
+
+            plt.plot([x1, x2], [y1, y2])
+
+        plt.show()
+

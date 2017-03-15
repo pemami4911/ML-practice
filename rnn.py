@@ -49,8 +49,8 @@ if __name__ == '__main__':
     parser.add_argument('--cv', default=10,
                         help='Number of times to do random train/test cross validation '
                              'splits before computing approximate model error')
-    parser.add_argument('--n_epochs', default=1000)
-    parser.add_argument('--beta', default=0.0001, help='L2 regularization parameter')
+    parser.add_argument('--n_epochs', default=500)
+    parser.add_argument('--beta', default=0, help='L2 regularization parameter')
     parser.add_argument('--lr', default=0.001)
 
     parser.set_defaults(save_weights=False)
@@ -65,10 +65,10 @@ if __name__ == '__main__':
     n_samples, _ = np.shape(data)
 
     # parameters
-    w1 = random_normal(1, 1, stddev=1)
-    w1_hat = random_normal(1, 1, stddev=1)
-    w2 = random_normal(1, 1, stddev=1)
-    w2_hat = random_normal(1, 1, stddev=1)
+    w1 = random_normal(1, 1, stddev=3)
+    w1_hat = random_normal(1, 1, stddev=3)
+    w2 = random_normal(1, 1, stddev=3)
+    w2_hat = random_normal(1, 1, stddev=3)
     bias1 = bias(1)
     bias2 = bias(1)
 
@@ -84,12 +84,12 @@ if __name__ == '__main__':
     w_norms = np.zeros_like(grad_norms)
 
     # do a random 70/30 split
-    n_training_samples = int(0.7 * n_samples)
-    n_test_samples = n_samples - n_training_samples
-    print("Splitting dataset into train/test sets of sizes {}/{}".format(n_training_samples, n_test_samples))
+    # n_samples = int(0.7 * n_samples)
+    # n_test_samples = n_samples - n_samples
+    # print("Splitting dataset into train/test sets of sizes {}/{}".format(n_samples, n_test_samples))
 
     training_loss = np.zeros((2, int(args['n_epochs'])))
-    test_loss = np.zeros_like(training_loss)
+    # test_loss = np.zeros_like(training_loss)
 
     for i in range(int(args['n_epochs'])):
 
@@ -102,98 +102,82 @@ if __name__ == '__main__':
         grad_bias2[:] = 0
 
         # do args['cv'] splits, summing the loss
-        for j in range(int(args['cv'])):
+        # for j in range(int(args['cv'])):
 
-            np.random.shuffle(data)
+        np.random.shuffle(data)
 
-            train_data = data[:n_training_samples]
-            test_data = data[n_training_samples:]
+        # train_data = data[:n_samples]
+        # test_data = data[n_samples:]
 
-            for k in range(n_training_samples):
+        for k in range(n_samples):
 
-                # forward equations
-                Ofirst0 = 0
-                Osecond0 = 0
+            # forward equations
+            Ofirst0 = 0
+            Osecond0 = 0
 
-                Ofirst1 = sigmoid(train_data[k, 0] * w1_hat + bias1)
-                Osecond1 = sigmoid(train_data[k, 1] * w2_hat + bias2)
+            Ofirst1 = sigmoid(data[k, 0] * w1_hat + bias1)
+            Osecond1 = sigmoid(data[k, 1] * w2_hat + bias2)
 
-                Ofirst2 = sigmoid(w1 * Osecond1 + bias1)
-                Osecond2 = sigmoid(w2 * Ofirst1 + bias2)
+            Ofirst2 = sigmoid(w1 * Osecond1 + bias1)
+            Osecond2 = sigmoid(w2 * Ofirst1 + bias2)
 
-                Ofirst3 = sigmoid(w1 * Osecond2 + bias1)
-                Osecond3 = sigmoid(w2 * Ofirst2 + bias2)
+            Ofirst3 = sigmoid(w1 * Osecond2 + bias1)
+            Osecond3 = sigmoid(w2 * Ofirst2 + bias2)
 
-                training_loss[0][i] += mse(train_data[k, 2], Ofirst3)
-                training_loss[1][i] += mse(train_data[k, 3], Osecond3)
+            training_loss[0][i] += mse(Ofirst3, data[k, 2])
+            training_loss[1][i] += mse(Osecond3, data[k, 3])
 
-                # accumulate gradients
+            # accumulate gradients
 
-                # grad_w1
-                grad_w1_p1 = -(train_data[k, 3] - Osecond3) * Osecond3 * (1 - Osecond3) * w2 * Ofirst2 * (1 - Ofirst2) * Osecond1
-                grad_w1_p2 = -(train_data[k, 2] - Ofirst3) * Ofirst3 * (1 - Ofirst3) * Osecond2
-                grad_w1 += (grad_w1_p1 + grad_w1_p2)
+            # grad_w1
+            grad_w1_p1 = -(Osecond3 - data[k, 3]) * Osecond3 * (1 - Osecond3) * w2 * Ofirst2 * (1 - Ofirst2) * Osecond1
+            grad_w1_p2 = -(Ofirst3 - data[k, 2]) * Ofirst3 * (1 - Ofirst3) * Osecond2
+            grad_w1 += (grad_w1_p1 + grad_w1_p2)
 
-                # grad_w2
-                grad_w2_p1 = -(train_data[k, 3] - Osecond3) * Osecond3 * (1 - Osecond3) * Ofirst2
-                grad_w2_p2 = -(train_data[k, 2] - Ofirst3) * Ofirst3 * (1 - Ofirst3) * w1 * Osecond2 * (1 - Osecond2) * Ofirst1
-                grad_w2 += (grad_w2_p1 + grad_w2_p2)
+            # grad_w2
+            grad_w2_p1 = -(Osecond3 - data[k, 3]) * Osecond3 * (1 - Osecond3) * Ofirst2
+            grad_w2_p2 = -(Ofirst3 - data[k, 2]) * Ofirst3 * (1 - Ofirst3) * w1 * Osecond2 * (1 - Osecond2) * Ofirst1
+            grad_w2 += (grad_w2_p1 + grad_w2_p2)
 
-                # grad_w1_hat
-                grad_w1_hat += -(train_data[k, 2] - Ofirst3) * Ofirst3 * (1 - Ofirst3) * w1 * Osecond2 * \
-                              (1 - Osecond2) * w2 * Ofirst1 * (1 - Ofirst1) * train_data[k, 0]
+            # grad_w1_hat
+            grad_w1_hat += -(Ofirst3 - data[k, 2]) * Ofirst3 * (1 - Ofirst3) * w1 * Osecond2 * \
+                          (1 - Osecond2) * w2 * Ofirst1 * (1 - Ofirst1) * data[k, 0]
 
-                # grad_w2_hat
-                grad_w2_hat += -(train_data[k, 3] - Osecond3) * Osecond3 * (1 - Osecond3) * w2 * Ofirst2 * \
-                              (1 - Ofirst2) * w1 * Osecond1 * (1 - Osecond1) * train_data[k, 1]
+            # grad_w2_hat
+            grad_w2_hat += -(Osecond3 - data[k, 3]) * Osecond3 * (1 - Osecond3) * w2 * Ofirst2 * \
+                          (1 - Ofirst2) * w1 * Osecond1 * (1 - Osecond1) * data[k, 1]
 
-                # grad_bias1
-                grad_bias1_p1 = -(train_data[k, 3] - Osecond3) * Osecond3 * (1 - Osecond3) * w2 * Ofirst2 * (1 - Ofirst2)
-                grad_bias1_p2 = -(train_data[k, 2] - Ofirst3) * Ofirst3 * (1 - Ofirst3) * (1 + w1 * (Osecond2 *
-                                                                             (1 - Osecond2) * Ofirst1 * (1 - Ofirst1)))
-                grad_bias1 += np.reshape(grad_bias1_p1 + grad_bias1_p2, 1)
+            # grad_bias1
+            grad_bias1_p1 = -(Osecond3 - data[k, 3]) * Osecond3 * (1 - Osecond3) * w2 * Ofirst2 * (1 - Ofirst2)
+            grad_bias1_p2 = -(Ofirst3 - data[k, 2]) * Ofirst3 * (1 - Ofirst3) * (1 + w1 * (Osecond2 *
+                                                                         (1 - Osecond2) * Ofirst1 * (1 - Ofirst1)))
+            grad_bias1 += np.reshape(grad_bias1_p1 + grad_bias1_p2, 1)
 
-                # grad_bias2
-                grad_bias2_p1 = -(train_data[k, 3] - Osecond3) * Osecond3 * (1 - Osecond3) * (1 + w2 * (Ofirst2 *
-                                                                            (1 - Ofirst2) * Osecond1 * (1 - Osecond1)))
-                grad_bias2_p2 = -(train_data[k, 2] - Ofirst3) * Ofirst3 * (1 - Ofirst3) * w1 * Osecond2 * (1 - Osecond2)
-                grad_bias2 += np.reshape(grad_bias2_p1 + grad_bias2_p2, 1)
+            # grad_bias2
+            grad_bias2_p1 = -(Osecond3 - data[k, 3]) * Osecond3 * (1 - Osecond3) * (1 + w2 * (Ofirst2 *
+                                                                        (1 - Ofirst2) * Osecond1 * (1 - Osecond1)))
+            grad_bias2_p2 = -(Ofirst3 - data[k, 2]) * Ofirst3 * (1 - Ofirst3) * w1 * Osecond2 * (1 - Osecond2)
+            grad_bias2 += np.reshape(grad_bias2_p1 + grad_bias2_p2, 1)
 
-            for k in range(n_test_samples):
-                # forward equations
-                Ofirst0 = 0
-                Osecond0 = 0
-
-                Ofirst1 = sigmoid(test_data[k, 0] * w1_hat + bias1)
-                Osecond1 = sigmoid(test_data[k, 1] * w2_hat + bias2)
-
-                Ofirst2 = sigmoid(w1 * Osecond1 + bias1)
-                Osecond2 = sigmoid(w2 * Ofirst1 + bias2)
-
-                Ofirst3 = sigmoid(bias1 + w1 * Osecond2)
-                Osecond3 = sigmoid(bias2 + w2 * Ofirst2)
-
-                test_loss[0][i] += mse(test_data[k, 2], Ofirst3)
-                test_loss[1][i] += mse(test_data[k, 3], Osecond3)
-
-        training_loss[:, i] = np.divide(training_loss[:, i], n_training_samples * int(args['cv']))
-        test_loss[:, i] = np.divide(test_loss[:, i], n_test_samples * int(args['cv']))
+        training_loss[:, i] = np.divide(training_loss[:, i], n_samples)
+        # test_loss[:, i] = np.divide(test_loss[:, i], n_test_samples * int(args['cv']))
 
         train_l = np.round(training_loss[:, i], 4)
-        test_l = np.round(test_loss[:, i], 4)
+        # test_l = np.round(test_loss[:, i], 4)
 
         print("\n")
-        print("  epoch: {}, MSE training loss: {}, MSE test loss {}".format(i, train_l, test_l))
+        # print("  epoch: {}, MSE training loss: {}, MSE test loss {}".format(i, train_l, test_l))
+        print("  epoch: {}, MSE training loss: {}".format(i, train_l))
 
         # apply gradients
 
         # first, scale them
-        grad_w1 = np.divide(grad_w1, n_training_samples * int(args['cv']))
-        grad_w2 = np.divide(grad_w2, n_training_samples * int(args['cv']))
-        grad_w1_hat = np.divide(grad_w1_hat, n_training_samples * int(args['cv']))
-        grad_w2_hat = np.divide(grad_w2_hat, n_training_samples * int(args['cv']))
-        grad_bias1 = np.divide(grad_bias1, n_training_samples * int(args['cv']))
-        grad_bias2 = np.divide(grad_bias2, n_training_samples * int(args['cv']))
+        grad_w1 = np.divide(grad_w1, n_samples)
+        grad_w2 = np.divide(grad_w2, n_samples)
+        grad_w1_hat = np.divide(grad_w1_hat, n_samples)
+        grad_w2_hat = np.divide(grad_w2_hat, n_samples)
+        grad_bias1 = np.divide(grad_bias1, n_samples)
+        grad_bias2 = np.divide(grad_bias2, n_samples)
 
         grad_norms[0][i] = np.linalg.norm(grad_w1)
         grad_norms[1][i] = np.linalg.norm(grad_w2)
@@ -224,22 +208,16 @@ if __name__ == '__main__':
         bias1 += float(args['lr']) * grad_bias1 + 2 * float(args['beta']) * bias1
         bias2 += float(args['lr']) * grad_bias2 + 2 * float(args['beta']) * bias2
 
+    print("  [*] the hidden weights are: w1 {}, w2 {}, w1_hat {}, w2_hat{}, bias1 {}, bias2 {}".format(w1, w2, w1_hat, w2_hat, bias1, bias2))
+
     if args['plots']:
         plt.figure(1)
-        ax1 = plt.subplot(121)
+        # ax1 = plt.subplot(121)
         plt.plot(training_loss[0], label='y1')
         plt.plot(training_loss[1], label='y2')
         plt.ylabel('training loss')
         plt.xlabel('epoch')
-        plt.title('RNN training loss')
-        ax1.set_ylim([0, 0.01])
-
-        ax2 = plt.subplot(122)
-        plt.plot(test_loss[0], label='y1')
-        plt.plot(test_loss[1], label='y2')
-        plt.ylabel('test loss')
-        plt.xlabel('epoch')
-        plt.title('RNN test loss')
-        ax2.set_ylim([0, 0.01])
+        plt.title('RNN training loss, random seed: {}'.format(args['random_seed']))
+        # ax.set_ylim([0, 0.01])
 
         plt.show()
