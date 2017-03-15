@@ -203,11 +203,13 @@ if __name__ == '__main__':
     if not args['plot_weights']:
         train_mlp(args)
     else:
-        w1 = load_pkl('models/mlp/w1-epoch-0-seed-82727.pkl')
-        w2 = load_pkl('models/mlp/w2-epoch-0-seed-82727.pkl')
-        w1_b = load_pkl('models/mlp/w1_b-epoch-0-seed-82727.pkl')
-        w2_b = load_pkl('models/mlp/w2_b-epoch-0-seed-82727.pkl')
 
+        w1 = load_pkl('models/mlp/w1-seed-82727.pkl')
+        w2 = load_pkl('models/mlp/w2-seed-82727.pkl')
+        w1_b = load_pkl('models/mlp/w1_b-seed-82727.pkl')
+        w2_b = load_pkl('models/mlp/w2_b-seed-82727.pkl')
+
+        """
         circle = plt.Circle((0.5, 0.6), 0.4)
         fig, ax = plt.subplots()
         ax.add_artist(circle)
@@ -221,4 +223,19 @@ if __name__ == '__main__':
             plt.plot([x1, x2], [y1, y2])
 
         plt.show()
+        """
+        x = np.linspace(0, 1)
+        y = np.linspace(0, 1)
 
+        circle = plt.Circle((0.5, 0.6), 0.4, color='g', fill='false')
+        fig, ax = plt.subplots()
+        ax.add_artist(circle)
+
+        for i in range(len(x)):
+            for j in range(len(y)):
+                pred = forward(x[i], y[j])
+                if pred == 1:
+                    plt.plot(x[i], y[j], 'o', color='blue')
+                else:
+                    plt.plot(x[i], y[j], 'o', color='red')
+        plt.show()

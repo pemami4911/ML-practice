@@ -46,12 +46,9 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', default='data/q3data.csv', help='raw CSV file of data')
     parser.add_argument('--save_weights', action='store_true')
     parser.add_argument('--plots', action='store_true')
-    parser.add_argument('--cv', default=10,
-                        help='Number of times to do random train/test cross validation '
-                             'splits before computing approximate model error')
-    parser.add_argument('--n_epochs', default=500)
+    parser.add_argument('--n_epochs', default=1000)
     parser.add_argument('--beta', default=0, help='L2 regularization parameter')
-    parser.add_argument('--lr', default=0.001)
+    parser.add_argument('--learning_rate', default=0.1)
 
     parser.set_defaults(save_weights=False)
     parser.set_defaults(plots=False)
@@ -201,12 +198,12 @@ if __name__ == '__main__':
                       w_norms[5][i]))
 
         # gradient descent step
-        w1 += float(args['lr']) * grad_w1 + 2 * float(args['beta']) * w1
-        w2 += float(args['lr']) * grad_w2 + 2 * float(args['beta']) * w2
-        w1_hat += float(args['lr']) * grad_w1_hat + 2 * float(args['beta']) * w1_hat
-        w2_hat += float(args['lr']) * grad_w2_hat + 2 * float(args['beta']) * w2_hat
-        bias1 += float(args['lr']) * grad_bias1 + 2 * float(args['beta']) * bias1
-        bias2 += float(args['lr']) * grad_bias2 + 2 * float(args['beta']) * bias2
+        w1 += float(args['learning_rate']) * grad_w1 + 2 * float(args['beta']) * w1
+        w2 += float(args['learning_rate']) * grad_w2 + 2 * float(args['beta']) * w2
+        w1_hat += float(args['learning_rate']) * grad_w1_hat + 2 * float(args['beta']) * w1_hat
+        w2_hat += float(args['learning_rate']) * grad_w2_hat + 2 * float(args['beta']) * w2_hat
+        bias1 += float(args['learning_rate']) * grad_bias1 + 2 * float(args['beta']) * bias1
+        bias2 += float(args['learning_rate']) * grad_bias2 + 2 * float(args['beta']) * bias2
 
     print("  [*] the hidden weights are: w1 {}, w2 {}, w1_hat {}, w2_hat{}, bias1 {}, bias2 {}".format(w1, w2, w1_hat, w2_hat, bias1, bias2))
 
