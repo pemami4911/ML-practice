@@ -15,9 +15,8 @@ The performance on the dataset is benchmarked by 2 methods.
 1. Always guessing the label 1.0 (No response) achieved `11.6371681416 %` classification error averaged across 5 random seeds.
 2. Logistic Regression achieved `2.22123893805 %` classification error averaged across 5 random seeds.
 
-![PLA Loss](img/pla_loss.png)
-
-![PLA Classification Error](img/pla_class_error.png)
+![PLA MSE loss averaged over 5 runs](img/pla_loss.png)
+![PLA classification error averaged over 5 runs](img/pla_class_error.png)
 
 
 ## Single-node Neural Network
@@ -28,8 +27,8 @@ On the [Bank Marketing Data Set](https://archive.ics.uci.edu/ml/datasets/Bank+Ma
 the single-node neural net achieved a classification error of `18.99114 %`, train MSE of `0.384254754533`, and test MSE `0.37982300885`.
 Results averaged over 5 random seeds.
 
-![sigmoid loss](img/pla_sigmoid_los_lr_0.1.png)
-![sigmoid error](img/pla_sigmoid_class_error_lr_0.1.png)
+![Sigmoid loss averaged over 5 runs](img/pla_sigmoid_loss_lr_0.1.png)
+![Sigmoid classification error averaged over 5 runs](img/pla_sigmoid_class_error_lr_0.1.png)
 
 ## Multi-Layer Perceptron
 
@@ -58,14 +57,24 @@ Hyperplanes `\sum w_i x_i + b = 0` plotted at intervals:
 
 ## Recurrent Neural-Network
 
-| Random Seed | y1 (MSE) | y2 (MSE) | w1 | w2 | w1_hat | w2_hat | bias1 | bias2
-|---|---|---|---|---|---|---|---|---
-| 23912 | 0.0008 | 0.0001 | -0.08824226 |  1.05798196 | 0.56187399 | -2.40338361 | 0.65013105 | -1.24926364
-| 72938 | 0.0028 | 0.0049 | -4.03109385 | -0.90386201 | 1.6435506 | -2.49336755 | 1.31868148 | -0.46683088
-| 9999 |  0.0008 | 0.0001 | -1.11172633 | -0.17362505 | 1.77607984 | -1.46465122 | 1.00974762 | -0.51267624
-| 6767 |  0.0007 | 0.0002 | 1.41394524 | 0.46672458 | -1.39501531 | -1.31052867 | 0.15320471 | -0.83057737
-| 1123 |  0.0009 | 0.0001 | 1.4844188 | -1.55841486 | -0.65509823 | -0.38466215 | 0.01454801 | 0.47195181
+Results of running 5 experiments, each with a different random seed. 
 
+| Random Seed | y1 (MSE) | y2 (MSE)
+|---|---|---|
+| 23912 | 0.0008 | 0.0001 
+| 72938 | 0.0028 | 0.0049 
+| 9999 |  0.0008 | 0.0001 
+| 6767 |  0.0007 | 0.0002 
+| 1123 |  0.0009 | 0.0001 
+
+ w1 | w2 | w1_hat | w2_hat | bias1 | bias2
+ ---|---|---|---|---|---
+ | -0.08824226 |  1.05798196 | 0.56187399 | -2.40338361 | 0.65013105 | -1.24926364
+ | -4.03109385 | -0.90386201 | 1.6435506 | -2.49336755 | 1.31868148 | -0.46683088
+ | -1.11172633 | -0.17362505 | 1.77607984 | -1.46465122 | 1.00974762 | -0.51267624
+ | 1.41394524 | 0.46672458 | -1.39501531 | -1.31052867 | 0.15320471 | -0.83057737
+ | 1.4844188 | -1.55841486 | -0.65509823 | -0.38466215 | 0.01454801 | 0.47195181
+ 
 ![RNN-seed-23912](img/rnn-seed-23912.png)
 ![RNN-seed-72938](img/rnn-seed-72938.png)
 ![RNN-seed-9999](img/rnn-seed-9999.png)

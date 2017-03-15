@@ -57,12 +57,12 @@ def train_mlp(args):
 
     for i in range(int(args['n_epochs'])):
 
-        if i % 5000 == 0:
-            print("  [*] Checkpoint: saving weights...")
-            save_pkl(w1, 'models/mlp/w1-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
-            save_pkl(w2, 'models/mlp/w2-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
-            save_pkl(w1_b, 'models/mlp/w1_b-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
-            save_pkl(w2_b, 'models/mlp/w2_b-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
+        #if i % 5000 == 0:
+        #    print("  [*] Checkpoint: saving weights...")
+        #    save_pkl(w1, 'models/mlp/w1-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
+        #    save_pkl(w2, 'models/mlp/w2-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
+        #    save_pkl(w1_b, 'models/mlp/w1_b-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
+        #    save_pkl(w2_b, 'models/mlp/w2_b-epoch-{}-seed-{}.pkl'.format(i, args['random_seed']))
 
         # zeros grads
         grad_w1[:] = 0.
@@ -152,15 +152,15 @@ def train_mlp(args):
         test_xs = train[:, 0:-1]
         test_ys = np.reshape(train[:, -1], (100, 1))
 
-    save_pkl(w1, 'models/mlp/w1-seed-{}.pkl'.format(args['random_seed']))
-    save_pkl(w2, 'models/mlp/w2-seed-{}.pkl'.format(args['random_seed']))
-    save_pkl(w1_b, 'models/mlp/w1_b-seed-{}.pkl'.format(args['random_seed']))
-    save_pkl(w2_b, 'models/mlp/w2_b-seed-{}.pkl'.format(args['random_seed']))
+    #save_pkl(w1, 'models/mlp/w1-seed-{}.pkl'.format(args['random_seed']))
+    #save_pkl(w2, 'models/mlp/w2-seed-{}.pkl'.format(args['random_seed']))
+    #save_pkl(w1_b, 'models/mlp/w1_b-seed-{}.pkl'.format(args['random_seed']))
+    #save_pkl(w2_b, 'models/mlp/w2_b-seed-{}.pkl'.format(args['random_seed']))
 
     if args['plots']:
         plt.figure(1)
         plt.plot(err)
-        plt.title('MLP classification error (5 random seeds ave)')
+        plt.title('MLP classification error, random seed: {}'.format(args['random_seed']))
         plt.ylabel('percent')
         plt.xlabel('epoch')
 
@@ -169,13 +169,13 @@ def train_mlp(args):
         plt.plot(train_loss)
         plt.ylabel('training loss')
         plt.xlabel('epoch')
-        plt.title('MLP training loss (MSE) (5 random seeds ave)')
+        plt.title('MLP MSE training loss, random seed: {}'.format(args['random_seed']))
 
         plt.subplot(122)
         plt.plot(test_loss)
         plt.ylabel('test loss')
         plt.xlabel('epoch')
-        plt.title('MLP test loss (MSE) (5 random seeds ave)')
+        plt.title('MLP MSE test loss, random seed: {}'.format(args['random_seed']))
 
         plt.show()
 

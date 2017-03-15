@@ -322,7 +322,7 @@ if __name__ == '__main__':
     parser.add_argument('--training_data', default='data/bank_train.pkl',
                         help='specify pickled preprocessed training data')
     parser.add_argument('--test_data', default='data/bank_test.pkl', help='specify pickled preprocessed test data')
-    parser.add_argument('--n_epochs', default=500, help='num epochs of training')
+    parser.add_argument('--n_epochs', default=10, help='num epochs of training')
     parser.add_argument('--learning_rate', default=0.1, help='learning rate for gradient descent')
     parser.add_argument('--plots', action='store_true', default=False)
 
