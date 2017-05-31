@@ -61,14 +61,6 @@ After 20,000 epochs, the network was able to learn the concept of the circle:
 ![MLP loss](img/mlp_loss.png)
 ![MLP error](img/mlp_class_error.png)
 
-Hyperplanes `\sum w_i x_i + b = 0` plotted at intervals:
-
-![epoch0](img/mlp-epoch-0.png)
-![epoch5000](img/mlp-epoch-5000.png)
-![epoch10000](img/mlp-epoch-10000.png)
-![epoch15000](img/mlp-epoch-15000.png)
-![epoch20000](img/mlp-epoch-20000.png)
-
 ## Recurrent Neural-Network
 
 Run with `python rnn.py --random_seed 1234 --learning_rate 0.1 --n_epochs 500`
