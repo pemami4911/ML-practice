@@ -65,8 +65,8 @@ After 20,000 epochs, the network was able to learn the concept of the circle:
 
 Run with `python rnn.py --random_seed 1234 --learning_rate 0.1 --n_epochs 500`
 
-Goal was to determine the weights for a simple RNN architecture that produced outputs `y1` and `y1` for 200 input pairs 
-`x1` and `x2`. These are the results of running 5 experiments, each with a different random seed. After a hyper-parameter search, a learning rate of 
+Goal was to determine the weights for a simple RNN architecture that produced outputs `y1` and `y2` for 200 input pairs 
+`x1` and `x2`. The train/test data can be found in `q3data.csv`. These are the results of running 5 experiments, each with a different random seed. After a hyper-parameter search, a learning rate of 
 `0.1` was chosen for gradient descent. Weights were initialized from a normal distribution with a std dev of `3`. Each entry 
 of the table shows the resulting weights after `500` epochs for a different random seed. The plots show the MSE of the 
 training loss vs. epochs.
